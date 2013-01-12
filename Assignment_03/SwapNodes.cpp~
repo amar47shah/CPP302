@@ -1,0 +1,743 @@
+/*
+ * SwapNodes.cpp
+ *
+ *  Created on: Oct 3, 2012
+ *      Author: amar
+ */
+
+#include <iostream>
+#include <iterator>
+
+using namespace std;
+
+template<typename Container>
+void printCollection(const Container & c, ostream & out = cout)
+{
+    if (c.empty())
+        out << "(empty)";
+    else
+    {
+        typename Container::const_iterator itr = c.begin();
+        out << "[ " << *itr++; // Print first item
+
+        while (itr != c.end())
+            out << ", " << *itr++;
+        out << " ]" << endl;
+    }
+}
+
+template<typename Object>
+class DLList
+{
+    private:
+        struct Node
+        {
+                Object data;
+                Node *prev;
+                Node *next;
+
+                Node(const Object & d = Object(), Node *p = NULL, Node *n = NULL) :
+                    data(d), prev(p), next(n)
+                {
+                }
+        };
+
+    public:
+        class const_iterator
+        {
+            public:
+                const_iterator() :
+                    current(NULL)
+                {
+                }
+
+                const Object & operator*() const
+                {
+                    return retrieve();
+                }
+
+                const_iterator & operator++()
+                {
+                    current = current->next;
+                    return *this;
+                }
+
+                const_iterator operator++(int)
+                {
+                    const_iterator old = *this;
+                    ++(*this);
+                    return old;
+                }
+
+                const_iterator & operator--()
+                {
+                    current = current->prev;
+                    return *this;
+                }
+
+                const_iterator operator--(int)
+                {
+                    const_iterator old = *this;
+                    --(*this);
+                    return old;
+                }
+
+                bool operator==(const const_iterator & rhs) const
+                {
+                    return current == rhs.current;
+                }
+                bool operator!=(const const_iterator & rhs) const
+                {
+                    return !(*this == rhs);
+                }
+
+            protected:
+                Node *current;
+
+                Object & retrieve() const
+                {
+                    return current->data;
+                }
+
+                const_iterator(Node *p) :
+                    current(p)
+                {
+                }
+
+                friend class DLList<Object> ;
+        };
+        class iterator : public const_iterator
+        {
+            public:
+                iterator()
+                {
+                }
+
+                Object & operator*()
+                {
+                    return this->retrieve();
+                }
+
+                const Object & operator*() const
+                {
+                    return const_iterator::operator*();
+                }
+
+                iterator & operator++()
+                {
+                    this->current = this->current->next;
+                    return *this;
+                }
+
+                iterator operator++(int)
+                {
+                    iterator old = *this;
+                    ++(*this);
+                    return old;
+                }
+
+                iterator & operator--()
+                {
+                    this->current = this->current->prev;
+                    return *this;
+                }
+
+                iterator operator--(int)
+                {
+                    iterator old = *this;
+                    --(*this);
+                    return old;
+                }
+
+            protected:
+                iterator(Node *p) :
+                    const_iterator(p)
+                {
+                }
+
+                friend class DLList<Object> ;
+        };
+
+    public:
+        DLList()
+        {
+            init();
+        }
+
+        ~DLList()
+        {
+            clear();
+            delete head;
+            delete tail;
+        }
+
+        DLList(const DLList & rhs)
+        {
+            init();
+            *this = rhs;
+        }
+
+        const DLList & operator=(const DLList & rhs)
+        {
+            if (this == &rhs)
+                return *this;
+            clear();
+            for (const_iterator itr = rhs.begin(); itr != rhs.end(); ++itr)
+                push_back(*itr);
+            return *this;
+        }
+
+        iterator begin()
+        {
+            return iterator(head->next);
+        }
+        const_iterator begin() const
+        {
+            return const_iterator(head->next);
+        }
+        iterator end()
+        {
+            return iterator(tail);
+        }
+        const_iterator end() const
+        {
+            return const_iterator(tail);
+        }
+        int size() const
+        {
+            return theSize;
+        }
+        bool empty() const
+        {
+            return size() == 0;
+        }
+        void clear()
+        {
+            while (!empty())
+                pop_front();
+        }
+        Object & front()
+        {
+            return *begin();
+        }
+        const Object & front() const
+        {
+            return *begin();
+        }
+        Object & back()
+        {
+            return *--end();
+        }
+        const Object & back() const
+        {
+            return *--end();
+        }
+        void push_front(const Object & x)
+        {
+            insert(begin(), x);
+        }
+        void push_back(const Object & x)
+        {
+            insert(end(), x);
+        }
+        void pop_front()
+        {
+            erase(begin());
+        }
+        void pop_back()
+        {
+            erase(--end());
+        }
+
+        // Insert x before itr.
+        iterator insert(iterator itr, const Object & x)
+        {
+            Node *p = itr.current;
+            theSize++;
+            return iterator(p->prev = p->prev->next = new Node(x, p->prev, p));
+        }
+        // Erase item at itr.
+        iterator erase(iterator itr)
+        {
+            Node *p = itr.current;
+            iterator retVal(p->next);
+            p->prev->next = p->next;
+            p->next->prev = p->prev;
+            delete p;
+            theSize--;
+
+            return retVal;
+        }
+
+        iterator erase(iterator start, iterator end)
+        {
+            for (iterator itr = start; itr != end;)
+                itr = erase(itr);
+
+            return end;
+        }
+
+        void swapWithNextDLL(const_iterator itr)
+        {
+            Node *p = itr.current;
+            Node *beforep, *afterp;
+            beforep = p->prev;
+            afterp = p->next;
+
+            p->next = afterp->next;
+            beforep->next = afterp;
+            afterp->next = p;
+
+            p->next->prev = p;
+            p->prev = afterp;
+            afterp->prev = beforep;
+
+        }
+
+        void swapBeforeAndAfter(const_iterator itr)
+        {
+            if (itr != begin() && itr != end())
+            {
+                Node *p = itr.current;
+                Node *beforep, *afterp, *twoBeforep, *twoAfterp;
+                beforep = p->prev;
+                afterp = p->next;
+                twoBeforep = beforep->prev;
+                twoAfterp = afterp->next;
+
+                twoBeforep->next = afterp;
+                afterp->prev = twoBeforep;
+                afterp->next = p;
+                p->prev = afterp;
+                p->next = beforep;
+                beforep->prev = p;
+                beforep->next = twoAfterp;
+                twoAfterp->prev = beforep;
+            }
+        }
+
+        const_iterator find(const_iterator start, const_iterator end, const Object& x)
+        {
+            const_iterator iter = start;
+            while (iter != end && *iter != x)
+                iter++;
+            //cout << *iter << endl;
+            return iter;
+        }
+
+    private:
+        int theSize;
+        Node *head;
+        Node *tail;
+        void init()
+        {
+            theSize = 0;
+            head = new Node;
+            tail = new Node;
+            head->next = tail;
+            tail->prev = head;
+        }
+};
+
+template<typename Object>
+class SLList
+{
+    private:
+        struct Node
+        {
+                Object data;
+                Node *next;
+
+                Node(const Object & d = Object(), Node *n = NULL) :
+                    data(d), next(n)
+                {
+                }
+        };
+
+    public:
+        class const_iterator
+        {
+            public:
+                const_iterator() :
+                    current(NULL)
+                {
+                }
+
+                const Object & operator*() const
+                {
+                    return retrieve();
+                }
+
+                const_iterator & operator++()
+                {
+                    current = current->next;
+                    return *this;
+                }
+
+                const_iterator operator++(int)
+                {
+                    const_iterator old = *this;
+                    ++(*this);
+                    return old;
+                }
+
+                const_iterator & operator--()
+                {
+                    Node *old = current;
+                    current = head;
+                    while (current->next != old)
+                        current = current->next;
+                    return *this;
+                }
+
+                const_iterator operator--(int)
+                {
+                    const_iterator old = *this;
+                    --(*this);
+                    return old;
+                }
+
+                bool operator==(const const_iterator & rhs) const
+                {
+                    return current == rhs.current;
+                }
+                bool operator!=(const const_iterator & rhs) const
+                {
+                    return !(*this == rhs);
+                }
+
+            protected:
+                Node *current;
+
+                Object & retrieve() const
+                {
+                    return current->data;
+                }
+
+                const_iterator(Node *p) :
+                    current(p)
+                {
+                }
+
+                friend class SLList<Object> ;
+        };
+        class iterator : public const_iterator
+        {
+            public:
+                iterator()
+                {
+                }
+
+                Object & operator*()
+                {
+                    return this->retrieve();
+                }
+
+                const Object & operator*() const
+                {
+                    return const_iterator::operator*();
+                }
+
+                iterator & operator++()
+                {
+                    this->current = this->current->next;
+                    return *this;
+                }
+
+                iterator operator++(int)
+                {
+                    iterator old = *this;
+                    ++(*this);
+                    return old;
+                }
+
+                iterator & operator--()
+                {
+                    Node *old = this->current;
+                    this->current = head;
+                    while (this->current->next != old)
+                        this->current = this->current->next;
+                    return *this;
+                }
+
+                iterator operator--(int)
+                {
+                    iterator old = *this;
+                    --(*this);
+                    return old;
+                }
+
+            protected:
+                iterator(Node *p) :
+                    const_iterator(p)
+                {
+                }
+
+                friend class SLList<Object> ;
+        };
+
+    public:
+        SLList()
+        {
+            init();
+        }
+
+        ~SLList()
+        {
+            clear();
+            delete head;
+            delete tail;
+        }
+
+        SLList(const SLList & rhs)
+        {
+            init();
+            *this = rhs;
+        }
+
+        const SLList & operator=(const SLList & rhs)
+        {
+            if (this == &rhs)
+                return *this;
+            clear();
+            for (const_iterator itr = rhs.begin(); itr != rhs.end(); ++itr)
+                push_back(*itr);
+            return *this;
+        }
+
+        iterator begin()
+        {
+            return iterator(head->next);
+        }
+        const_iterator begin() const
+        {
+            return const_iterator(head->next);
+        }
+        iterator end()
+        {
+            return iterator(tail);
+        }
+        const_iterator end() const
+        {
+            return const_iterator(tail);
+        }
+        int size() const
+        {
+            return theSize;
+        }
+        bool empty() const
+        {
+            return size() == 0;
+        }
+        void clear()
+        {
+            while (!empty())
+                pop_front();
+        }
+        Object & front()
+        {
+            return *begin();
+        }
+        const Object & front() const
+        {
+            return *begin();
+        }
+        Object & back()
+        {
+            return *--end();
+        }
+        const Object & back() const
+        {
+            return *--end();
+        }
+        void push_front(const Object & x)
+        {
+            insert(begin(), x);
+        }
+        void push_back(const Object & x)
+        {
+            insert(end(), x);
+        }
+        void pop_front()
+        {
+            erase(begin());
+        }
+        void pop_back()
+        {
+            erase(--end());
+        }
+
+        // Insert x before itr.
+        iterator insert(iterator itr, const Object & x)
+        {
+            Node *p = itr.current;
+            (--itr).current->next = new Node(x, p);
+            theSize++;
+            return itr;
+        }
+        // Erase item at itr.
+        iterator erase(iterator itr)
+        {
+            Node *p = itr.current;
+            iterator retVal(p->next);
+
+            (--itr).current->next = p->next;
+            delete p;
+            theSize--;
+
+            return retVal;
+        }
+
+        iterator erase(iterator start, iterator end)
+        {
+            for (iterator itr = start; itr != end;)
+                itr = erase(itr);
+
+            return end;
+        }
+
+        void swapWithNextSLL(const_iterator itr)
+        {
+            Node *p = itr.current;
+            Node *afterp = p->next;
+            Node *beforep = (--itr).current;
+
+            p->next = afterp->next;
+            beforep->next = afterp;
+            afterp->next = p;
+
+        }
+
+        void swapBeforeAndAfter(const_iterator itr)
+        {
+            if (itr != begin() && itr != end())
+            {
+                Node *p = itr.current;
+                Node *afterp = p->next;
+                Node *twoAfterp = afterp->next;
+                Node *beforep = (--itr).current;
+                Node *twoBeforep = (--itr).current;
+
+                twoBeforep->next = afterp;
+                afterp->next = p;
+                p->next = beforep;
+                beforep->next = twoAfterp;
+            }
+        }
+
+        const_iterator find(const_iterator start, const_iterator end, const Object& x)
+        {
+            const_iterator iter = start;
+            while (iter != end && *iter != x)
+                iter++;
+            //cout << *iter << endl;
+            return iter;
+        }
+
+    private:
+        int theSize;
+        Node *head;
+        Node *tail;
+        void init()
+        {
+            theSize = 0;
+            head = new Node;
+            tail = new Node;
+            head->next = tail;
+        }
+};
+
+int main()
+{
+    DLList<int> myDLL;
+    DLList<int>::const_iterator cIter;
+
+    myDLL.push_front(3);
+    myDLL.push_front(2);
+    myDLL.push_front(1);
+    myDLL.push_back(4);
+    myDLL.push_back(5);
+    myDLL.push_back(6);
+    myDLL.push_back(7);
+    myDLL.push_back(8);
+    myDLL.push_back(9);
+
+    cout << "List size = " << myDLL.size() << endl;
+    cout << "List: "; printCollection(myDLL, cout);
+
+    cout << endl;
+    cout << "Swapping the first two elements:" << endl;
+    myDLL.swapWithNextDLL(myDLL.begin());
+    cout << "List: "; printCollection(myDLL, cout);
+
+    cIter = myDLL.begin();
+    for (int i = 0; i < 4; ++i) cIter++;
+    cout << "Swapping the fourth and sixth elements:" << endl;
+    myDLL.swapBeforeAndAfter(cIter);
+    cout << "List: "; printCollection(myDLL, cout);
+
+    cIter = myDLL.begin();
+    for (int i = 0; i < 2; ++i) cIter++;
+    cout << "Let's swap the elements before and after the 3:" << endl;
+    myDLL.swapBeforeAndAfter(cIter);
+    cout << "List: "; printCollection(myDLL, cout);
+
+    cout << endl;
+    cout <<"What happens if we try to swap the elements \"before\" and after the beginning?" << endl;
+    myDLL.swapBeforeAndAfter(myDLL.begin());
+    cout << "List: "; printCollection(myDLL, cout);
+    cout << "Or before and \"after\" the end?" << endl;
+    myDLL.swapBeforeAndAfter(myDLL.end());
+    cout << "List: "; printCollection(myDLL, cout);
+    cout << "Nothing happened either time." << endl;
+    cout << endl;
+
+    SLList<char> mySLL;
+    SLList<char>::const_iterator cIter2();
+
+    mySLL.push_front('C');
+    mySLL.push_front('B');
+    mySLL.push_front('A');
+    mySLL.push_back('D');
+    mySLL.push_back('E');
+    mySLL.push_back('F');
+    mySLL.push_back('G');
+
+    cout << "List size = " << mySLL.size() << endl;
+    cout << "List: "; printCollection(mySLL, cout);
+
+    cout << endl;
+    cout << "Swapping the first two elements:" << endl;
+    mySLL.swapWithNextSLL(mySLL.begin());
+    cout << "List: "; printCollection(mySLL, cout);
+
+    /*cIter2 = mySLL.begin();
+    for (int i = 0; i < 4; ++i) cIter2++;
+    cout << "Swapping the fourth and sixth elements:" << endl;
+    myDLL.swapBeforeAndAfter(cIter);
+    cout << "List: "; printCollection(myDLL, cout);
+
+    cIter = myDLL.begin();
+    for (int i = 0; i < 2; ++i) cIter++;
+    cout << "Let's swap the elements before and after the 3:" << endl;
+    myDLL.swapBeforeAndAfter(cIter);
+    cout << "List: "; printCollection(myDLL, cout);
+
+    cout << endl;
+    cout <<"What happens if we try to swap the elements \"before\" and after the beginning?" << endl;
+    myDLL.swapBeforeAndAfter(myDLL.begin());
+    cout << "List: "; printCollection(myDLL, cout);
+    cout << "Or before and \"after\" the end?" << endl;
+    myDLL.swapBeforeAndAfter(myDLL.end());
+    cout << "List: "; printCollection(myDLL, cout);
+    cout << "Nothing happened either time." << endl;
+    cout << endl;*/
+
+
+    return 0;
+}
+
+
+
+
+

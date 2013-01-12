@@ -1,0 +1,215 @@
+#ifndef SLLIST_H_
+#define SLLIST_H_
+
+typedef int Type;
+
+enum Boolean
+{
+	False = 0, True
+};
+
+class Item
+{
+		friend class SLList;
+
+	public:
+		Type getVal()
+		{
+			return val;
+		}
+
+	private:
+		Item(Type value, Item *item = 0)
+		{
+			val = value;
+			next = item;
+		}
+
+		Type val;
+		Item *next;
+};
+
+class SLList
+{
+
+	public:
+
+		class Const_Iterator
+		{
+				friend class SLList;
+			public:
+				Item *current;
+
+				Const_Iterator() :
+					current(NULL)
+				{
+				}
+
+				const Item & operator*() const
+				{
+					return *this->current;
+				}
+
+				Const_Iterator operator++()
+				{
+					current = current->next;
+					return *this;
+				}
+
+				Const_Iterator operator++(int)
+				{
+					Const_Iterator old = *this;
+					++(*this);
+					return old;
+				}
+
+				/*Const_Iterator & operator--()
+                {
+				    Item *old = current;
+				    current = list;
+				    while (current->next != old)
+				        current = current->next;
+				   return *this;
+                }*/
+
+				bool operator==(const Const_Iterator & rhs)
+				{
+					return current == rhs.current;
+				}
+				bool operator!=(const Const_Iterator & rhs)
+				{
+					return !(*this == rhs);
+				}
+
+				Item retrieve() const
+				{
+					return current->val;
+				}
+
+				Item* next() const
+				{
+				    return current->next;
+				}
+
+				Const_Iterator(Item *p) :
+					current(p)
+				{
+				}
+
+		};
+
+		class Iterator
+		{
+				friend class SLList;
+			public:
+				Item *current;
+
+				Iterator() :
+					current(NULL)
+				{
+				}
+
+				const Item & operator*() const
+				{
+					return *this->current;
+				}
+
+				Iterator operator++()
+				{
+					current = current->next;
+					return *this;
+				}
+
+				Iterator operator++(int)
+				{
+					Iterator old = *this;
+					++(*this);
+					return old;
+				}
+
+				/*Iterator & operator--()
+                {
+				    Item *old = current;
+				    current = list;
+				    while (current->next != old)
+				        current = current->next;
+				    return *this;
+                }*/
+
+				bool operator==(const Iterator & rhs) const
+				{
+					return current == rhs.current;
+				}
+				bool operator!=(const Iterator & rhs)
+				{
+					return !(*this == rhs);
+				}
+
+				Item retrieve()
+				{
+					return current->val;
+				}
+
+				Item* next()
+				{
+				    return current->next;
+				}
+
+				Iterator(Item *p) :
+					current(p)
+				{
+				}
+		};
+
+		SLList()
+		{
+			list = 0;
+		}
+		~SLList()
+		{
+			remove();
+		}
+        Const_Iterator begin() const
+        {
+            return Const_Iterator(list);
+        }
+        Iterator begin()
+        {
+            return Iterator(list);
+        }
+        Const_Iterator end() const
+        {
+            return Const_Iterator(atEndItem);
+        }
+        Iterator end()
+        {
+            return Iterator(atEndItem);
+        }
+
+		void insert(Type someItem);
+		void append(Type someItem);
+		void push_front(Type someItem);
+		int remove(Type someItem);
+		void remove();
+
+		Item *atEnd();
+		Item *head();
+		Item *tail();
+
+		Boolean isPresent(Type someItem);
+		Boolean isEmpty();
+		void display();
+
+		void swapTwo(Iterator loc);
+		void swapBeforeAndAfter(Iterator loc);
+
+	private:
+		Iterator iterator;
+		Item *list;
+		Item *atEndItem;
+
+        Item *previous(Item *p);
+
+};
+
+#endif /* SLLIST_H_ */
